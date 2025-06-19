@@ -1,0 +1,18 @@
+- title: 前端
+  items:
+    - title: CSS 技巧
+      url: /categories/css/
+    - title: JavaScript
+      url: /categories/javascript/
+- title: 后端
+  items:
+    - title: Node.js
+      url: /categories/nodejs/
+    - title: Python
+      url: /categories/python/
+- title: 算法与数据结构
+  items:
+    - title: 图算法
+      url: /categories/graph/
+    - title: 排序与查找
+      url: /categories/sort-search/

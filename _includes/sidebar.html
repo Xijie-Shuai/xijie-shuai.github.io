@@ -1,0 +1,44 @@
+<aside class="sidebar">
+  <div class="profile">
+    <img src="{{ '/assets/img/avatar.jpg' | relative_url }}" alt="头像" class="avatar">
+    <h2>Xijie</h2>
+  </div>
+
+  <nav class="toc">
+    <h3>目录</h3>
+    <ul>
+      {% for sec in site.data.menu %}
+      <li>
+        {{ sec.title }}
+        {% if sec.items %}
+        <ul>
+          {% for it in sec.items %}
+          <li>
+            <a href="{{ it.url }}">{{ it.title }}</a>
+            {% if it.items %}
+            <ul>
+              {% for sub in it.items %}
+              <li><a href="{{ sub.url }}">{{ sub.title }}</a></li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+
+  <div class="about">
+    <h3>About Me</h3>
+    <p>这里写一句你的简介，比如 “全栈开发者 · 技术爱好者”。</p>
+  </div>
+
+  <div class="contact">
+    <h3>Contact</h3>
+    <p>Email: <a href="mailto:you@example.com">you@example.com</a></p>
+    <p>GitHub: <a href="https://github.com/xijie">github.com/xijie</a></p>
+  </div>
+</aside>

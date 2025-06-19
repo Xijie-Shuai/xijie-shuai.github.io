@@ -1,0 +1,10 @@
+title: Xijie 的技术笔记
+description: 记录工作和学习中的技术总结
+baseurl: ""           # 留空
+url: "https://xijie.github.io"
+markdown: kramdown
+permalink: /:categories/:year/:month/:day/:title.html
+paginate: 5
+plugins:
+  - jekyll-paginate
+  - jekyll-seo-tag
