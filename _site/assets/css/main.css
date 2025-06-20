@@ -1,0 +1,181 @@
+/* —————— Reset & 基础 —————— */
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Microsoft YaHei",sans-serif; color:#333; }
+
+/* —————— Sidebar 整体布局 —————— */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 240px;
+  padding: 5rem 1rem 1rem;  /* 上边距 2rem，左右1rem，下1rem */
+  background: #f5f5f5;
+  overflow-y: auto;
+}
+
+/* 头像 & 名字 */
+.avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  display: block;
+  margin: 0 auto 0.5rem;
+}
+.sidebar h2 {
+  text-align: center;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+
+/* —————— 目录（TOC）样式 —————— */
+.sidebar .toc {
+  background: #f2f2f2;
+  padding: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+/* —— 去掉目录所有层级的圆点 —— */
+.sidebar .toc ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc h3 {
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.6rem;
+}
+
+/* 隐藏原生 details/summary 箭头标记 */
+.sidebar summary::-webkit-details-marker,
+.sidebar summary::marker {
+  display: none;
+}
+
+/* summary 行内布局 + 箭头 */
+.sidebar summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+.sidebar summary:hover {
+  background: #e6e6e6;
+}
+.sidebar summary::after {
+  content: "▶";
+  font-size: 0.7em;
+  transition: transform 0.2s;
+}
+.sidebar details[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+/* 一级目录 */
+.sidebar .toc > details > summary {
+  font-size: 1rem;
+  padding-left: 0.5rem;
+  text-align: left;
+}
+
+/* 二级目录 & 叶子链接 */
+.sidebar .toc > details > ul > li > details > summary,
+.sidebar .toc > details > ul > li > a {
+  font-size: 0.9rem;
+  padding-left: 1.5rem;
+}
+.sidebar li > a {
+  display: block;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: background 0.2s;
+}
+.sidebar li > a:hover {
+  background: #e6e6e6;
+}
+
+/* 缩进多级列表（更多层级可仿照此逻辑） */
+.sidebar ul ul { padding-left: 1em; }
+
+/* —————— Main 内容区布局 —————— */
+.main-content {
+  margin-left: 260px;
+  padding: 1rem 2rem;
+}
+
+/* —————— Cover 样式 —————— */
+.cover {
+  text-align: center;
+  padding: 3rem 0;
+  background: #e0f7fa;
+}
+.cover-img { max-width: 100%; height: auto; margin-bottom: 1rem; }
+.cover h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+.cover p { color: #555; }
+
+/* —————— 博文列表 & 分页 —————— */
+.post-list ul { list-style: none; }
+.post-list li { margin: 0.8rem 0; }
+.post-list a { font-size: 1rem; color: #007ACC; text-decoration: none; }
+.post-list small { margin-left: 0.6rem; color: #888; }
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* —————— 代码块字体 —————— */
+code, pre { font-family: Consolas, monospace; }
+
+/* —————— 响应式 —————— */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-content { margin: 0; }
+}
+
+/* —— 主页 & 关于我 链接字号 —— */
+.sidebar .custom-menu a {
+  font-size: 0.85rem;    /* 比一级目录小一点 */
+}
+
+/* —— 重置链接默认蓝紫色 —— */
+.sidebar a {
+  color: #333;           /* 普通黑 */
+  text-decoration: none;
+}
+.sidebar a:visited {
+  color: #333;
+}
+.sidebar a:hover {
+  color: #000;
+}
+
+/* —— 目录折叠动画 —— */
+/* 包裹子列表，用 max-height+overflow 做过渡 */
+.sidebar .toc details > ul {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+}
+/* 打开时放开高度限制（数值大于子列表高度） */
+.sidebar .toc details[open] > ul {
+  max-height: 500px;
+}
+
+/* —— 高亮选中状态 —— */
+/* 打开展开的大项背景蓝 */
+.sidebar .toc details[open] > summary {
+  background: #007ACC;
+  color: #fff;
+}
+/* 当前页面的链接背景深灰 */
+.sidebar .toc a.active {
+  background: #555;
+  color: #fff;
+}
