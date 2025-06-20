@@ -18,14 +18,37 @@
     </ul>
 
     <!-- 动态生成多级目录 -->
-    {% for sec in site.data.menu %}
-    <details>
+  {% for sec in site.data.menu %}
+    {%- comment -%}
+      检测 sec 下是否有当前页面 URL
+    {%- endcomment -%}
+    {% assign sec_open = false %}
+    {% for it in sec.items %}
+      {% if page.url == it.url %}
+        {% assign sec_open = true %}
+      {% elsif it.items %}
+        {% for sub in it.items %}
+          {% if page.url == sub.url %}
+            {% assign sec_open = true %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+
+    <details{% if sec_open %} open{% endif %}>
       <summary>{{ sec.title }}</summary>
       <ul>
         {% for it in sec.items %}
           {% if it.items %}
+          {%- comment -%}二级也是同理，可加 open 判断{%- endcomment -%}
+          {% assign it_open = false %}
+          {% for sub in it.items %}
+            {% if page.url == sub.url %}
+              {% assign it_open = true %}
+            {% endif %}
+          {% endfor %}
           <li>
-            <details>
+            <details{% if it_open %} open{% endif %}>
               <summary>{{ it.title }}</summary>
               <ul>
                 {% for sub in it.items %}
@@ -50,7 +73,8 @@
         {% endfor %}
       </ul>
     </details>
-    {% endfor %}
+  {% endfor %}
+
 
     <!-- 关于我 -->
     <ul class="custom-menu">
