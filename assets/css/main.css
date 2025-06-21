@@ -155,15 +155,12 @@ code, pre { font-family: Consolas, monospace; }
   color: #fff;
 }
 
-/* —— 确保二级 summary 默认不锁背景 —— */
 .sidebar .toc > details > ul > li > details > summary {
-  background: none;    /* 取消 #fafafa */
   margin-bottom: .2rem;/* 保留间距 */
 }
 
-/* —————— 1. 让 <details> 默认不隐藏内容 —— 交给 JS 控制高度 —————— */
 .sidebar .toc details > ul {
-  display: block;          /* 覆盖 UA summary ~ * {display:none;} */
+    display: block !important;  /* *强制* 显示：让 JS max-height 动画可见 */
 }
 
 /* hover 统一只变背景，不变字体 */
