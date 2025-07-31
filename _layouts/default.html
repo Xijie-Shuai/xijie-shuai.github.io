@@ -1,18 +1,30 @@
+---
+---
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page.title | default: site.title }}</title>
   {% seo %}
+
+  <!-- 1. 你的全局样式 -->
   <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+
+  <!-- 2. GitHub Markdown 默认样式 -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/6.0.2/github-markdown.min.css">
+
 </head>
 <body>
   {% include sidebar.html %}
-
   <div class="main-content">
-    {{ content }}
+    <article class="markdown-body">
+      {{ content }}
+    </article>
   </div>
-<script src="{{ '/assets/js/sidebar.js' | relative_url }}"></script>
+
+  <script src="{{ '/assets/js/sidebar.js' | relative_url }}"></script>
 </body>
 </html>
