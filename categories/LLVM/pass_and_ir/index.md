@@ -148,7 +148,7 @@ int main() {
     return 0;
 }
 ```
-<img src="images/graph_IR.png" width=50% />
+<img src="_images/graph_IR.png" width=50% />
 
 值得注意的是，和AI编译器不同，LLVM的图IR是有环的。这主要是为了完整支持高层语言的goto跳转，异常处理跳转、递归跳转等特性，即LLVM的目标是准确表达任意高级程序语言的控制流与状态修改，而AI编译器的核心目标侧重于表达数据依赖与数学计算顺序，尽可能消除复杂的控制结构。这就导致AI编译器的计算图一般是无环的，它不支持这些跳转，包括递归。以PyTorch为例：
 

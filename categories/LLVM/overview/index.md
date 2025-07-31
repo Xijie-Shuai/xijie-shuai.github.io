@@ -9,7 +9,7 @@ title: 概述
 
 目前流行的编译器通架构为**前端**、**中端**和**后端**组成的**三段式架构**。
 
-<img src="images/popular_compiler_arch.png" width=100% />
+<img src="_images/popular_compiler_arch.png" width=100% />
 
 **前端**：将输入代码解析成更便于进行编译优化或者目标代码生成的一种IR，并检查输入代码的词法、语法、语义合法。不同输入语言可以转为统一的中间中间表示，以使后续的流程可以语言无关。
 
