@@ -1,10 +1,16 @@
-title: Xijie 的技术笔记
-description: 记录工作和学习中的技术总结
-baseurl: ""           # 留空
+# site settings
+title: "Xijie 的技术笔记"
+description: "记录工作和学习中的技术总结"
 url: "https://xijie.github.io"
-markdown: kramdown
-permalink: /:categories/:year/:month/:day/:title.html
+
+# use GitHub’s Primer theme for Markdown rendering
+theme: jekyll-theme-primer
+
+# pagination & permalinks
 paginate: 5
+permalink: /:categories/:year/:month/:day/:title.html
+
+# plugins
 plugins:
   - jekyll-paginate
   - jekyll-seo-tag
