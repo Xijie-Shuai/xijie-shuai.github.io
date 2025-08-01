@@ -29,6 +29,6 @@ Declaration
 
 **后端**：针对目标硬件硬件，将中端输出的IR翻译成对应的机器码。通常包括指令选择、指令调度、寄存器分配和机器码生成等。
 
-## LLVM的架构和
+## LLVM的子工具
 
 LLVM整体架构采用的就是如上的三段式。LLVM编译流程的子工具中，`clang`对应前端，`opt`对应中端，`llc`对应后端。`clang`在实际LLVM编译中也承担驱动的角色，即`clang`可分为clang frontend(对应内部模块`cc1`，可以用`clang -cc1`直接、独立地调用LLVM前端)，和clang driver(即直接使用`clang`，它作为驱动会调用`cc1`，`opt`，`llc`，连接器`ld.lld`等)。
