@@ -7,7 +7,7 @@ title: Pass和中间表示
 
 ## Pass和PassManager
 
-### Pass的概念
+### Pass
 
 Pass指的是对编译对象（即中间表示, IR）进行一次扫描并分析或优化。引入Pass概念后，可以将复杂的编译过程分解为多个Pass。例如在LLVM中端优化过程中，所有的优化都是基于LLVM IR，因此可以设计功能独立、实现简单的Pass。根据功能和定位，Pass可分为：
 
@@ -15,11 +15,18 @@ Pass指的是对编译对象（即中间表示, IR）进行一次扫描并分析
 - 变换Pass：对IR进行优化变换，一般会使用分析Pass的信息。变换后可能会导致以前的分析Pass的结果失效
 - 功能Pass：既分析也不变换，一般用于提供公共功能，例如将IR进行打印
 
-### LLVM的Pass
+在不同优化等级下，LLVM会调用不同的Passes。有哪些Pass，都是做什么用的可以参考[LLVM Passes](https://llvm.org/docs/Passes.html)。
 
+以LLVM18为例（后续代码示例等都会以LLVM18为基础），希望查看某优化等级下执行的所有Pass可以
 
+```commandline
+clang -emit-llvm -c 1.c -o 1.bc
+opt -O1 -disable-output -debug-pass-manager=verbose 1.bc   // 以O1为例
+```
 
 ### PassManager
+
+
 
 ## IR分类
 
