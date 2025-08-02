@@ -45,7 +45,7 @@ AnalysisManager有一个Map={分析类型：分析结果}。Transform Pass并不
 
 Clang+LLVM编译流程中的各IR生命周期如下。
 
-![img.png](images/IR_lifespan.png)
+![img.png](images/IR_lifespan.png){: width="100%"}
 
 - Clang Parser：Clang的词法、语法、语义分析分别由Lexer、Parser、Sema模块承担。严格来说词法分析生成token序列，语法分析会将其组装成AST，语义分析会对AST进行扩展或补充，例如`int x = 1.5;`中，Parser生成AST节点后，Sema插入浮点转整型的Cast节点。
 - Clang EmitLLVM：用于将Clang转为LLVM IR的FrontendAction。
@@ -203,6 +203,7 @@ int main() {
 ```
 
 ![CFG_for_main](images/main_cfg.png){: width="25%"}
+
 ![CFG_for_factor](images/factor_cfg.png){: width="50%"}
 
 和AI编译器不同，LLVM的图IR是有环的。这主要是为了完整支持高层语言的goto跳转，异常处理跳转、递归跳转等特性，即LLVM的目标是准确表达任意高级程序语言的控制流与状态修改，而AI编译器的核心目标侧重于表达数据依赖与数学计算顺序，尽可能消除复杂的控制结构。这就导致AI编译器的计算图一般是无环的，它不支持这些跳转，包括递归。以PyTorch为例：
