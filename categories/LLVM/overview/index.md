@@ -38,3 +38,4 @@ LLVM编译器整体架构采用的就是如上的三段式。LLVM编译器生态
 - `opt`：LLVM的中端驱动，接受`.bc`或`.ll`格式的LLVM IR，串联各种Pass。内部通过PassManager调用LLVM核心库里的的各种Pass
 - `llc`：包装了LLVM核心库后端功能的工具。它接受经过优化的LLVM IR，实现IR到目标架构机器码（或汇编）的转换
 
+更多子工具可参考[LLVM文档](https://llvm.org/)。
