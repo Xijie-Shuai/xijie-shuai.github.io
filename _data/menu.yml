@@ -13,4 +13,8 @@
     - title: 支配分析
       url: /categories/LLVM/domtree/
     - title: 指令选择
-      url: /categories/LLVM/isel/
+      url: /categories/LLVM/instr_sel/
+    - title: 指令调度
+      url: /categories/LLVM/instr_sch/
+    - title: 寄存器分配
+      url: /categories/LLVM/reg_alloc/

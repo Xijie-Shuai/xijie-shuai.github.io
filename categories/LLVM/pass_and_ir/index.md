@@ -9,31 +9,54 @@ title: Pass和中间表示
 
 ### Pass
 
-Pass指的是对编译对象（即中间表示, IR）进行一次扫描并分析或优化。引入Pass概念后，可以将复杂的编译过程分解为多个Pass。例如在LLVM中端优化过程中，所有的优化都是基于LLVM IR，因此可以设计功能独立、实现简单的Pass。根据功能和定位，Pass可分为：
+Pass指的是对编译对象（即中间表示, IR）进行一次扫描并分析或变换。引入Pass概念后，可以将复杂的编译过程分解为多个Pass。例如在LLVM中端优化过程中，所有的优化都是基于LLVM IR，因此可以设计功能独立、实现简单的Pass。根据功能和定位，Pass可分为：
 
-- 分析Pass：只收集信息进行分析，不做任何修改。分析结果供其他Pass使用
-- 变换Pass：对IR进行优化变换，一般会使用分析Pass的信息。变换后可能会导致以前的分析Pass的结果失效
-- 功能Pass：既分析也不变换，一般用于提供公共功能，例如将IR进行打印
+- Analysis Pass：只收集信息进行分析，不做任何修改。分析结果供其他Pass使用
+- Transform Pass：对IR进行优化变换，一般会使用分析Pass的信息。变换后可能会导致以前的分析Pass的结果失效
+- Utility Pass：既分析也不变换，一般用于提供公共功能，例如将IR进行打印
 
 在不同优化等级下，LLVM会调用不同的Passes。有哪些Pass，都是做什么用的可以参考[LLVM Passes](https://llvm.org/docs/Passes.html)。
 
-以LLVM18为例（后续代码示例等都会以LLVM18为基础），希望查看某优化等级下执行的所有Pass可以
+以LLVM18为例（后续代码示例等都会以LLVM18为基础），希望查看某优化等级下执行的所有Pass可以执行：
 
 ```commandline
 clang -emit-llvm -c 1.c -o 1.bc
 opt -O1 -disable-output -debug-pass-manager=verbose 1.bc   // 以O1为例
 ```
 
+**广义与狭义Pass**：Pass的本质是将整个编译过程拆分为若干互不干扰、按序执行的子模块。从这个角度看，不论是AST到LLVM IR的转换，还是后端的指令选择、指令调度、寄存器分配等，都符合广义Pass的定义。而LLVM的狭义Pass为LLVM IR上的分析、变换和功能（即[LLVM Passes](https://llvm.org/docs/Passes.html)），他们都统一被注册在LLVM的PassManager里，可增删、重排、并行等。指令选择等虽然同样模块化，但却并未被纳入PassManager，而是用自己的Pipeline来组织，在LLVM的文档描述中纳入了[Target Independent Code Generator](https://llvm.org/docs/CodeGenerator.html#id39)部分。
+
 ### PassManager
 
+[todo] 目前没啥了解
 
+**PassManager是怎么知道哪些分析Pass的分析结果已经失效的？**
 
-## IR分类
+AnalysisManager有一个Map={分析类型：分析结果}。Transform Pass并不需要探查现在有哪些分析结果，只需要返回一个PreservedAnalyses对象，其中保存了“哪些分析结果如果存在，本Pass保证没有干涉，后续依然有效”的信息。AnalysisManager会据此清理已有的分析结果。若Transform Pass没有确保某分析结果依然有效，则清理。
 
-**中间表示**(Intermediate Representation, **IR**)：是编译器在编译流程中使用的一种程序表示形式。 编译器通常不会直接从源代码生成机器码，而是先将源程序转为一种或多种IR，再在IR上做各种优化，最后再生成目标机器码。这样做的好处包括：
+## IR
+
+**中间表示**(Intermediate Representation, **IR**)：是编译器在编译流程中使用的一种程序表示形式。编译器通常不会直接从源代码生成机器码，而是先将源程序转为一种或多种IR，再在IR上做各种优化(Pass)，最后再生成目标机器码。这样做的好处包括：
 
  - 便于将一系列选择、优化等编译要实现的功能拆分成多个子阶段分别实现 (Pass→IR→Pass→IR→...)，提高编译器的可维护性与扩展性
  - 将语言无关的优化与目标无关的优化解耦，支持多种源语言和多种目标硬件架构复用相同中端/后端
+
+### Clang+LLVM的IR
+
+Clang+LLVM编译流程中的各IR生命周期如下。
+
+![img.png](images/IR_lifespan.png)
+
+- Clang Parser：Clang的词法、语法、语义分析分别由Lexer、Parser、Sema模块承担。严格来说词法分析生成token序列，语法分析会将其组装成AST，语义分析会对AST进行扩展或补充，例如`int x = 1.5;`中，Parser生成AST节点后，Sema插入浮点转整型的Cast节点。
+- Clang EmitLLVM：用于将Clang转为LLVM IR的FrontendAction。
+- SelectionDAGISel(SelectionDAGBuilder)：SelectionDAGISel为LLVM后端负责指令选择的Pass，SelectionDAGBuilder是它的子模块。它逐条遍历LLVM IR并构建初始的SelectionDAG，后续有其他模块对其做合法化（将不被目标平台直接支持的操作分解或合并成一系列合法的基本操作）、优化等。关于LLVM指令选择、本模块、之后的SelectionDAGFormationPhase的更多细节可以参考[LLVM文档-指令选择章节](https://llvm.org/docs/CodeGenerator.html#instruction-selection-section)。
+- SelectionDAGISel(SelectionDAGFormation)：SelectionDAGISel内完成合法化、优化、选择、调度（[todo]有趣的是SelectionDAG上也做了schedule，而不是只有MIR上的指令调度，原因暂不了解）之后的最终步骤，将SelectionDAG转换为MachineInstr list。
+- AsmPrinter：负责将Code Generator层抽象(e.g. MachineInstr)下降成Machine Code(MC)层抽象(e.g. MCInst)（[todo]MachineInstr层抽象和MCInstr层抽象的区别是啥？）。具体可参考[LLVM Code Emission](https://llvm.org/docs/CodeGenerator.html#code-emission)。
+- ObjectFileWriter：LLVM MC层负责将MCInst写成目标对象文件（.o、.obj）的组件。
+
+Clang AST示例参阅下一小节的`树形IR`，LLVM IR示例参阅下一小节的`线性IR`。[todo] 其他IR待补充
+
+### IR分类
 
 编译器的不同阶段会根据不同的目的使用不同形式的IR。他们虽然形式不同，但本质都是同等信息的不同呈现方式。
 
@@ -53,7 +76,7 @@ int add(int a, int b) {
 }
 ```
 ```text
-// clang -cc1 -ast-dump 1.c  // -cc1表示直接驱动前端，不做链接等步骤
+// clang -cc1 -ast-dump 1.c  // -cc1表示直接驱动前端
 TranslationUnitDecl 0x229f351d9c0 <<invalid sloc>> <invalid sloc>  // TranslationUnitDecl是Clang AST的顶层声明节点，通常对应1个源文件；
     // 0x...是该AST节点再内存中的地址，可以理解成本次编译中该AST的ID；<<...>>表示原始源码起止范围，顶层声明节点不直接对应任何一段真是文本，因此标记为
     // invalid sloc(无效/不存在的源位置)；<...>表示经宏展开或预处理后的位置（若宏展开后才出现问题，定位时有用）
@@ -160,7 +183,7 @@ attributes #0 = { noinline nounwind optnone uwtable "min-legal-vector-width"="0"
 !4 = !{!"clang version 18.1.8"}
 ```
 
-**图形IR**：指以包含节点和有向边等的图表达程序，相比之下侧重程序的控制流与数据依赖，一般用于中端和后端。常见形式有控制流图(Control Flow Graph, CFG)，其中节点为基本块(Basic Block, BB)，边是可能的执行跳转；和数据流图(Data Flow Graph, DFG)，其中节点是运算或存储操作，边是数据依赖。
+**图形IR**：指以包含节点和有向边等的图表达程序，相比之下侧重程序的控制流与数据依赖，一般用于中端和后端。常见形式有控制流图(Control Flow Graph, CFG)，其中节点为基本块(Basic Block, BB)，边是可能的执行跳转；和数据流图(Data Flow Graph, DFG)，其中节点是运算或存储操作，边是数据依赖，等。值得注意的是，虽然中端各Pass间传递的是LLVM IR这个线性IR，但各Pass内却可能会按需转成图IR以便分析和变换。
 
 ```C
 int factor(int n) {
@@ -175,10 +198,14 @@ int main() {
     int res = factor(3);
     return 0;
 }
+// clang -S -emit-llvm 2.c -o 2.ll 
+// opt -passes=view-cfg 2.ll （需先安装Graphviz或其他画图软件）
 ```
-![graph_IR](images/graph_IR.png){: width="50%"}
 
-值得注意的是，和AI编译器不同，LLVM的图IR是有环的。这主要是为了完整支持高层语言的goto跳转，异常处理跳转、递归跳转等特性，即LLVM的目标是准确表达任意高级程序语言的控制流与状态修改，而AI编译器的核心目标侧重于表达数据依赖与数学计算顺序，尽可能消除复杂的控制结构。这就导致AI编译器的计算图一般是无环的，它不支持这些跳转，包括递归。以PyTorch为例：
+![CFG_for_main](images/main_cfg.png){: width="25%"}
+![CFG_for_factor](images/factor_cfg.png){: width="50%"}
+
+和AI编译器不同，LLVM的图IR是有环的。这主要是为了完整支持高层语言的goto跳转，异常处理跳转、递归跳转等特性，即LLVM的目标是准确表达任意高级程序语言的控制流与状态修改，而AI编译器的核心目标侧重于表达数据依赖与数学计算顺序，尽可能消除复杂的控制结构。这就导致AI编译器的计算图一般是无环的，它不支持这些跳转，包括递归。以PyTorch为例：
 
 ```python
 import torch
@@ -224,5 +251,3 @@ RuntimeError:
 - 向量化：用图易于找无循环依赖的子图，生成SIMD指令
 - 循环变换(Loop Transform)：为改善性能对循环结构做各种等价重写，包括循环展开(Loop Unrolling)把原来迭代n此的循环体复制多份以减少循环分支次数、循环融合(Loop Fusion)把多个具有相同迭代空间的循环合并成一个以减少循环开销并提升数据复用、循环切分(Loop Splitting)把大循环分割成多个小新欢以分别向量化和优化缓存，等
 - BB间重复子表达式消除：分析各BB入口处哪些表达式已计算且未被覆盖
-
-
