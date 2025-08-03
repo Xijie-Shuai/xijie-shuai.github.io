@@ -6,8 +6,8 @@
       url: /categories/LLVM/pass_and_ir/
     - title: 基本块和控制流图
       url: /categories/LLVM/bb_and_cfg/
-    - title: 静态单赋值
-      url: /categories/LLVM/ssa/
+    - title: 静态单赋值和φ
+      url: /categories/LLVM/ssa_and_phi/
     - title: 数据流分析
       url: /categories/LLVM/dfa/
     - title: 支配分析
