@@ -143,7 +143,7 @@ target triple = "x86_64-pc-windows-msvc19.42.34436"  // 目标架构x86_64；厂
 ; Function Attrs: noinline nounwind optnone uwtable  // noinline指禁止编译器自动inline该函数；optnone指关闭所有优化(clang命令默认-O0)；
   // nounwind指编译器认为该函数必定不会抛出异常(一般标准C函数都不会抛出异常，数组越界也是未定义行为UB不算异常)，且不会触发栈展开(stack unwinding)，
   // 栈展开指发生异常后逐层清理函数的调用栈帧中局部对象的析构函数，释放临时资源；uwtable示要为此函数生成完整的unwind表，即使被标记为了nounwind，
-  // 必须unwind是Windows/MSVC平台的限制
+  // 必须unwind是Windows/MSVC平台的限制。注意";"后的是注释，即这一行只是对人阅读友好的注释，不会产生实际作用；实际产生作用的是末尾的"attributes #0 = ..."
 define dso_local i32 @main() #0 {  // #0标签告诉编译器该怎么处理该函数，#0的描述在IR结尾；dso_local指此符号对当前可执行文件或共享库是本地可见，不需要外部重定位
   %1 = alloca i32, align 4  // alloca指在函数的栈帧上分配一块内存；然后将栈上新分配空间的地址(i32*指针)存入虚拟寄存器%1
   %2 = alloca i32, align 4
