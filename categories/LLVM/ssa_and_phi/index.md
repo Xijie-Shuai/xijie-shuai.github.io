@@ -129,6 +129,7 @@ attributes #0 = { noinline nounwind optnone uwtable "min-legal-vector-width"="0"
 ```
 
  - [Mem2reg](https://llvm.org/docs/Passes.html#reg2mem-demote-all-values-to-stack-slots)是LLVM中端的第一个Transform Pass，它将栈内存转为虚拟寄存器以构建SSA，并添加φ节点。
+
 ```text
 // 先将4.raw.ll中attributes #0中的optnone删除
 // opt -passes=mem2reg 4.raw.ll -S -o 4.mem2reg.ll   单独运行mem2reg。下面是输出主体
@@ -150,6 +151,7 @@ define dso_local i32 @main() #0 {
   ret i32 0
 }
 ```
+
  - SelectionDAG的生命周期为指令选择内。因为硬件没有对应φ的算子，所以指令选择天然必须处理掉φ节点，也就不得不破坏SSA。指令选择完成后会恢复SSA的形式
  - 寄存器分配后将虚拟寄存器映射到物理寄存器，彻底打破SSA单赋值约束。
 
@@ -233,5 +235,4 @@ exit:
 但该方案也有它的问题：
 
 - 表达问题：CFG模型BB是主要单位，所有指令、变量都归属于BB，而边只表达跳转关系，没有标识符也没有存储空间，无法附带数据。因此，BB参数方案中，入参的取值由边的源节点决定。这就导致如果出现了前驱BB需要`branch cond, BB2(val1), BB2(val2)`时，源节点相同，BB2无法得知该取val1还是val2。但φ节点方案的映射却可以用边，即将val1、val2记录在BB2内，不同的边直接指向不同的val。虽然BB参数方案也有办法可以处理这一问题（例如要求前端别生成这样的IR，添加一个新的基本块以作区分等），但又增加了复杂度
-- 兼容性：非传统写法，需要大规模改造前端、优化器、后端
-- 新增信息：需要额外机制在可视化时标注“这条边传 x_from_bb1”之类信息
+- 兼容性：LLVM/GCC等主流编译器已有完善生态，工具链、调试器都识别φ非传统写法；而BB参数需要大规模改造前端、优化器、后端，适配量巨大
