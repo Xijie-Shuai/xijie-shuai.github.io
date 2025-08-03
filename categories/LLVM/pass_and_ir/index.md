@@ -133,7 +133,7 @@ TranslationUnitDecl 0x229f351d9c0 <<invalid sloc>> <invalid sloc>  // Translatio
 **线性IR**：指以有序指令流的形式表达程序，每条指令都是三地址式或近似汇编的简化版本，相比之下侧重以一条条指令展现计算步骤，一般用于中端和后端。
 
 ```text
-// clang -S -emit-llvm 1.c -o 1.ll  // -S指生成汇编文件，而非编成目标机器码的二进制文件(.o)；-emit-llvm表示输出LLVM IR文本，而非目标架构的汇编(如x86_64指令文本)
+// clang -S -emit-llvm 1.c -o 1.ll  // -S指停在汇编阶段不继续走链接；-emit-llvm表示将LLVM IR视作汇编，整条命令就是跑完前中端
 ; ModuleID = '1.c'  // Module指文件，不是完整程序
 source_filename = "1.c"
 target datalayout = "e-m:w-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"  // 描述目标平台的数据布局约定，
