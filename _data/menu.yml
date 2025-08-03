@@ -18,3 +18,5 @@
       url: /categories/LLVM/instr_sch/
     - title: 寄存器分配
       url: /categories/LLVM/reg_alloc/
+    - title: 参考
+      url: /categories/LLVM/ref/
