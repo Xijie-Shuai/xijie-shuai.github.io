@@ -58,7 +58,7 @@ Clang+LLVM编译流程中的各IR生命周期如下。
 - Clang EmitLLVM：用于将Clang转为LLVM IR的FrontendAction。
 - SelectionDAGISel(SelectionDAGBuilder)：SelectionDAGISel为LLVM后端负责指令选择的Pass，SelectionDAGBuilder是它的子模块。它逐条遍历LLVM IR并构建初始的SelectionDAG，后续有其他模块对其做合法化（将不被目标平台直接支持的操作分解或合并成一系列合法的基本操作）、优化等。关于LLVM指令选择、本模块、之后的SelectionDAGFormationPhase的更多细节可以参考[LLVM文档-指令选择章节](https://llvm.org/docs/CodeGenerator.html#instruction-selection-section)。
 - SelectionDAGISel(SelectionDAGFormation)：SelectionDAGISel内完成合法化、优化、选择、调度（[todo]有趣的是SelectionDAG上也做了schedule，而不是只有MIR上的指令调度，原因暂不了解）之后的最终步骤，将SelectionDAG转换为MachineInstr list。
-- AsmPrinter：负责将Code Generator层抽象(e.g. MachineInstr)下降成Machine Code(MC)层抽象(e.g. MCInst)（[todo]MachineInstr层抽象和MCInstr层抽象的区别是啥？）。具体可参考[LLVM Code Emission](https://llvm.org/docs/CodeGenerator.html#code-emission)。
+- AsmPrinter：负责将Code Generator层抽象(e.g. MachineInstr)下降成Machine Code(MC)层抽象(e.g. MCInst)（例如对于C代码`return a + b; //ab为函数入参`，LLVM IR层为`%0 = add i32 %a, %b` `ret i32 %0`，MachineInstr层为`%2:32 = COPY %a:32 ; 将函数入参a放到虚拟寄存器，b同理` `%4:32 = ADD32rr %2:32, %3:32 ; 执行寄存器上的加法`，MC层为`add edi, esi` `mov eax, edi`）。具体可参考[LLVM Code Emission](https://llvm.org/docs/CodeGenerator.html#code-emission)。
 - ObjectFileWriter：LLVM MC层负责将MCInst写成目标对象文件（.o、.obj）的组件。
 
 Clang AST示例参阅下一小节的`树形IR`，LLVM IR示例参阅下一小节的`线性IR`。[todo] 其他IR待补充
