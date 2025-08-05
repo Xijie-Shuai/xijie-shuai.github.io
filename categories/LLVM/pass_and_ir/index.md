@@ -13,7 +13,7 @@ Pass指的是对编译对象（即中间表示, IR）进行一次扫描并分析
 
 - Analysis Pass：只收集信息进行分析，不做任何修改。分析结果供其他Pass使用
 - Transform Pass：对IR进行优化变换，一般会使用分析Pass的信息。变换后可能会导致以前的分析Pass的结果失效
-- Utility Pass：既分析也不变换，一般用于提供公共功能，例如将IR进行打印
+- Utility Pass：既分析也不变换，一般用于提供公共功能，且无需执行分析，例如将IR进行打印（LLVM文档将`print-callgraph`Pass等划分到Analysis Pass类，因为需要先做CallGraph分析才能打印）
 
 在不同优化等级下，LLVM会调用不同的Passes。有哪些Pass，都是做什么用的可以参考[LLVM Passes](https://llvm.org/docs/Passes.html)。
 
