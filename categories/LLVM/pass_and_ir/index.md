@@ -28,7 +28,14 @@ opt -O1 -disable-output -debug-pass-manager=verbose 1.bc   // 以O1为例
 
 ### PassManager
 
-[todo] 目前没啥了解
+LLVM用PassManager进行对Pass的管理，例如对Analysis Pass的结果进行存储和有效性判断、精细管理Pass间依赖、提供错误诊断信息等。PassManager包含四个层级：
+
+- ModulePassManager：最顶层的Manager，负责管理作用于整个模块的分析和变换
+- CGSCCPassManager：第二层的Manager，负责管理作用于调用图强连通分量（Call Graph Strong Connected Component, CGSCC）的Pass。CGSCC指有向图的一个子集，使得子集中的任意两个节点经过若干条有向边可达（例如循环体），划分这一层级的好处是，可以一次性看整个互相调用的函数集合，便于跨函数优化
+- FunctionPassManager：第三层的Manager，负责管理单个函数内的分析和变换
+- LoopPassManager：最底层Manager，负责函数内由多个基本块组成的Loop进行最细粒度的处理
+
+PassManager不支持不同层的并行，例如ModulePass执行的过程中，该Module的子Function的FunctionPass不会同时执行，而是必须得等上层的ModulePass、CGSCCPass执行完；但是不同Module的话当然是可以并行的。如果没有依赖，且驱动层能提供多个线程，则Pass都可以并行。
 
 **PassManager是怎么知道哪些分析Pass的分析结果已经失效的？**
 
