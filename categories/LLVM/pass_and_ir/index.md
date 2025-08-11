@@ -13,7 +13,7 @@ Pass指的是对编译对象（即中间表示, IR）进行一次扫描并分析
 
 - Analysis Pass：只收集信息进行分析，不做任何修改。分析结果供其他Pass使用
 - Transform Pass：对IR进行优化变换，一般会使用分析Pass的信息。变换后可能会导致以前的分析Pass的结果失效
-- Utility Pass：既分析也不变换，一般用于提供公共功能，例如将IR进行打印
+- Utility Pass：既分析也不变换，一般用于提供公共功能，且无需执行分析，例如将IR进行打印（LLVM文档将`print-callgraph`Pass等划分到Analysis Pass类，因为需要先做CallGraph分析才能打印）
 
 在不同优化等级下，LLVM会调用不同的Passes。有哪些Pass，都是做什么用的可以参考[LLVM Passes](https://llvm.org/docs/Passes.html)。
 
@@ -28,7 +28,14 @@ opt -O1 -disable-output -debug-pass-manager=verbose 1.bc   // 以O1为例
 
 ### PassManager
 
-[todo] 目前没啥了解
+LLVM用PassManager进行对Pass的管理，例如对Analysis Pass的结果进行存储和有效性判断、精细管理Pass间依赖、提供错误诊断信息等。PassManager包含四个层级：
+
+- ModulePassManager：最顶层的Manager，负责管理作用于整个模块的分析和变换
+- CGSCCPassManager：第二层的Manager，负责管理作用于调用图强连通分量（Call Graph Strong Connected Component, CGSCC）的Pass。CGSCC指有向图的一个子集，使得子集中的任意两个节点经过若干条有向边可达（例如循环体），划分这一层级的好处是，可以一次性看整个互相调用的函数集合，便于跨函数优化
+- FunctionPassManager：第三层的Manager，负责管理单个函数内的分析和变换
+- LoopPassManager：最底层Manager，负责函数内由多个基本块组成的Loop进行最细粒度的处理
+
+PassManager不支持不同层的并行，例如ModulePass执行的过程中，该Module的子Function的FunctionPass不会同时执行，而是必须得等上层的ModulePass、CGSCCPass执行完；但是不同Module的话当然是可以并行的。如果没有依赖，且驱动层能提供多个线程，则Pass都可以并行。
 
 **PassManager是怎么知道哪些分析Pass的分析结果已经失效的？**
 
@@ -51,7 +58,7 @@ Clang+LLVM编译流程中的各IR生命周期如下。
 - Clang EmitLLVM：用于将Clang转为LLVM IR的FrontendAction。
 - SelectionDAGISel(SelectionDAGBuilder)：SelectionDAGISel为LLVM后端负责指令选择的Pass，SelectionDAGBuilder是它的子模块。它逐条遍历LLVM IR并构建初始的SelectionDAG，后续有其他模块对其做合法化（将不被目标平台直接支持的操作分解或合并成一系列合法的基本操作）、优化等。关于LLVM指令选择、本模块、之后的SelectionDAGFormationPhase的更多细节可以参考[LLVM文档-指令选择章节](https://llvm.org/docs/CodeGenerator.html#instruction-selection-section)。
 - SelectionDAGISel(SelectionDAGFormation)：SelectionDAGISel内完成合法化、优化、选择、调度（[todo]有趣的是SelectionDAG上也做了schedule，而不是只有MIR上的指令调度，原因暂不了解）之后的最终步骤，将SelectionDAG转换为MachineInstr list。
-- AsmPrinter：负责将Code Generator层抽象(e.g. MachineInstr)下降成Machine Code(MC)层抽象(e.g. MCInst)（[todo]MachineInstr层抽象和MCInstr层抽象的区别是啥？）。具体可参考[LLVM Code Emission](https://llvm.org/docs/CodeGenerator.html#code-emission)。
+- AsmPrinter：负责将Code Generator层抽象(e.g. MachineInstr)下降成Machine Code(MC)层抽象(e.g. MCInst)（例如对于C代码`return a + b; //ab为函数入参`，LLVM IR层为`%0 = add i32 %a, %b` `ret i32 %0`，MachineInstr层为`%2:32 = COPY %a:32 ; 将函数入参a放到虚拟寄存器，b同理` `%4:32 = ADD32rr %2:32, %3:32 ; 执行寄存器上的加法`，MC层为`add edi, esi` `mov eax, edi`）。具体可参考[LLVM Code Emission](https://llvm.org/docs/CodeGenerator.html#code-emission)。
 - ObjectFileWriter：LLVM MC层负责将MCInst写成目标对象文件（.o、.obj）的组件。
 
 Clang AST示例参阅下一小节的`树形IR`，LLVM IR示例参阅下一小节的`线性IR`。[todo] 其他IR待补充
