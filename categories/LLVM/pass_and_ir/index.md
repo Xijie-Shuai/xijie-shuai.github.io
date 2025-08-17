@@ -13,7 +13,7 @@ Pass指的是对编译对象（即中间表示, IR）进行一次扫描并分析
 
 - Analysis Pass：只收集信息进行分析，不做任何修改。分析结果供其他Pass使用
 - Transform Pass：对IR进行优化变换，一般会使用分析Pass的信息。变换后可能会导致以前的分析Pass的结果失效
-- Utility Pass：既分析也不变换，一般用于提供公共功能，且无需执行分析，例如将IR进行打印（LLVM文档将`print-callgraph`Pass等划分到Analysis Pass类，因为需要先做CallGraph分析才能打印）
+- Utility Pass：既不分析也不变换，一般用于提供公共功能，且无需执行分析，例如将IR进行打印（LLVM文档将`print-callgraph`Pass等划分到Analysis Pass类，因为需要先做CallGraph分析才能打印）
 
 在不同优化等级下，LLVM会调用不同的Passes。有哪些Pass，都是做什么用的可以参考[LLVM Passes](https://llvm.org/docs/Passes.html)。
 
@@ -85,7 +85,7 @@ int add(int a, int b) {
 ```text
 // clang -cc1 -ast-dump 1.c  // -cc1表示直接驱动前端
 TranslationUnitDecl 0x229f351d9c0 <<invalid sloc>> <invalid sloc>  // TranslationUnitDecl是Clang AST的顶层声明节点，通常对应1个源文件；
-    // 0x...是该AST节点再内存中的地址，可以理解成本次编译中该AST的ID；<<...>>表示原始源码起止范围，顶层声明节点不直接对应任何一段真是文本，因此标记为
+    // 0x...是该AST节点在内存中的地址，可以理解成本次编译中该AST的ID；<<...>>表示原始源码起止范围，顶层声明节点不直接对应任何一段真实文本，因此标记为
     // invalid sloc(无效/不存在的源位置)；<...>表示经宏展开或预处理后的位置（若宏展开后才出现问题，定位时有用）
 |-TypedefDecl 0x229f351e1f8 <<invalid sloc>> <invalid sloc> implicit __int128_t '__int128'  // TypedefDecl表示一个typedef；
     // implicit表示该节点是编译器自动插入，而非用户在源代码里写的；为__int128定义了别名__int128_t
