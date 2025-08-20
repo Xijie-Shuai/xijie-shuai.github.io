@@ -113,12 +113,104 @@ PRE的目标是将沿某些但非全部执行路径重复计算的表达式（�
 
 
 
+**全局值编号(Global Value Numbering, GVN)**：目标是给每个表达式分配一个值号(Value Number)，并在全局范围内复用相同值号的计算，以消除完全冗余。
+
+
+
+https://github.com/llvm/llvm-project/blob/694a4887089fb006dc597219485d7354540917c6/llvm/lib/Transforms/Scalar/GVN.cpp#L2886
+
+
 ## LLVM中的支配分析
 
 LLVM中的支配分析的核心产物是支配树。后续所有对严格支配、支配边界等的计算，都是在支配树上产生的。当需要这些“附加信息”时会调用相应算法遍历、查询支配树，而不会在一开始就分析好所有信息。
 
+错的。LLVM有domtree、domfrontier、postdomtree
+
 TODO
 
 
+```text
+PS C:\Users\xjshu\CLionProjects\playground> opt -S --passes=print<domtree> 6.ll -o 6dom.ll
+DominatorTree for function: func
+=============================--------------------------------
+Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries.
+  [1] %2 {4294967295,4294967295} [0]
+    [2] %7 {4294967295,4294967295} [1]
+      [3] %10 {4294967295,4294967295} [2]
+        [4] %14 {4294967295,4294967295} [3]
+        [4] %22 {4294967295,4294967295} [3]
+          [5] %23 {4294967295,4294967295} [4]
+        [4] %18 {4294967295,4294967295} [3]
+      [3] %26 {4294967295,4294967295} [2]
+Roots: %2 
+DominatorTree for function: main
+=============================--------------------------------
+Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries.
+```
+
+
+```text
+PS C:\Users\xjshu\CLionProjects\playground> opt -S --passes=print<domfrontier> 6.ll -o 6dom.ll
+DominanceFrontier for function: func
+  DomFrontier for BB %23 is:     %7
+  DomFrontier for BB %2 is:
+  DomFrontier for BB %14 is:     %22
+  DomFrontier for BB %26 is:
+  DomFrontier for BB %22 is:     %7
+  DomFrontier for BB %18 is:     %22
+  DomFrontier for BB %10 is:     %7
+  DomFrontier for BB %7 is:      %7
+DominanceFrontier for function: main
+  DomFrontier for BB %0 is:
+```
+
+逐行解释打印结果
+1. 输出头部
+DominatorTree for function: func 表示下面一大段内容是对名为 func 的函数执行支配树分析后打印的结果。
+
+=============================-------------------------------- 纯视觉分隔线，用来区分不同函数的输出区块。
+
+2. 中序遍历和编号状态
+Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries. “Inorder Dominator Tree” 表示采用中序（inorder）方式遍历并打印树结构 “DFSNumbers invalid” 说明在这次打印中并未计算或启用节点的 DFS 进入/离开编号（它们全为默认值 4294967295，即 -1u） “0 slow queries” 表示在分析过程中没有触发任何需要额外工作（slow queries）的情况。
+
+3. 各节点详细说明
+下面的行按树的层级关系缩进，整体格式为：
+
+[节点序号] 节点名称 {DFS-In,DFS-Out} [父节点序号]
+
+[1] %2 {4294967295,4294967295} [0] 节点序号 1，对应名称 %2。 大括号里两项都是 4294967295，表示 DFS 编号未启用。 末尾 [0] 表示它没有父节点（序号 0 表示根）。
+
+[2] %7 {4294967295,4294967295} [1] 序号 2，名称 %7。 它的立即支配者（父节点）是序号 1（即 %2），对应末尾的 [1]。
+
+[3] %10 {4294967295,4294967295} [2] 序号 3，名称 %10。 父节点是序号 2（%7）。
+
+[4] %14 {4294967295,4294967295} [3] 序号 4，名称 %14。 父节点是序号 3（%10）。
+
+[4] %22 {4294967295,4294967295} [3] 同样是序号 4，名称 %22，与 %14 并列于同一深度； 它也由 %10（序号 3）直接支配。
+
+[5] %23 {4294967295,4294967295} [4] 序号 5，名称 %23； 由序号 4 的 %22 直接支配。
+
+[4] %18 {4294967295,4294967295} [3] 序号 4（回到同一深度编号），名称 %18； 由 %10（序号 3）直接支配，与 %14、%22 同级。
+
+[3] %26 {4294967295,4294967295} [2] 序号 3（又回到更浅层级的编号），名称 %26； 它是 %7（序号 2）的另一个子节点。
+
+4. 根节点列表
+Roots: %2 列出支配树森林（若存在多个连通分量）中的根节点。这里只有一个根 %2。
+
+5. 下一个函数的支配树概览
+DominatorTree for function: main 开始打印 main 函数的结果。
+
+=============================-------------------------------- 分隔线。
+
+Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries. 与前面相同，表示对 main 做了中序遍历打印，但没有展开任何子节点（可能因为 main 内部结构过于简单或不包含对应价值节点）。
+
+
+
+
+
+Entry 块（函数的第一个块）若未显式命名，会被省略标签，因为没有任何指令需要跳回它。
+
 ## 支配分析算法
+
+TODO
 
