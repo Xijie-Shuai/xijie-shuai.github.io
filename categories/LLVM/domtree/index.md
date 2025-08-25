@@ -74,7 +74,10 @@ LLVM中支配分析的作用众多，下面举几例说明。
 
 值得额外说明的是，LLVM中并不是符合以上条件就一定会移动到preheader中。这是因为移动是有代价的，例如延长了变量的生命周期。仅当LLVM认为该移动总体上是有盈利时才会执行移动操作。
 
-### 冗余消除 - 公共子表达式消除、部分冗余消除、全局值编号
+### 冗余消除 - 部分冗余消除、全局值编号
+
+[注] 下面对各功能模块中支配的使用未必完全准确。资料不全、不准，想要确定只能看源码，例如[LLVM`GVNPass::performScalarPRE`](https://github.com/llvm/llvm-project/blob/694a4887089fb006dc597219485d7354540917c6/llvm/lib/Transforms/Scalar/GVN.cpp#L2886)
+[注] LLVM中可能并没有global CSE。关于CSE中的支配分析只是一种符合逻辑的做法，不代表LLVM中的具体实现
 
 **公共子表达式消除(Common Subexpression Elimination, CSE)**：CSE目标是优化掉冗余的操作符、操作数（包括操作数的顺序）完全相同的表达式；如果上一次该表达式出现(BB1)到本次出现(BB2)间操作数未被重新定值，且若BB2执行则BB1一定执行，则当前表达式冗余。CSE中支配分析承担了两个目的：
 
@@ -104,37 +107,33 @@ PRE的目标是将沿某些但非全部执行路径重复计算的表达式（�
 
 上图示例中选择了Latest策略，即在保证消除部分冗余的前提下，把插入点推后到尽可能接近使用点。Earliest则是另一种策略，即找到最靠近入口且满足安全要求的插入点，也就是在B1中插入。Earliest、Latest在不同场景下各有优劣。总之，在PRE中，支配分析承担了两项任务：
 
-- PRE的第一步-φ插入：首先数据流分析会找到所有使得从其开始不论走哪条路径必然有use或def该表达式的所有BB。鬼扯把
-- 
-- 
-- 
-- 之后，利用支配边界找到所有汇合点BB，取其交集就是实际需要插入φ节点的位置，因为他们存在前驱提供该表达式，且
-- 移动计算时，确认新的计算位置是否支配
+- φ插入：同SSA构造
+- 寻找插入位置（间接）：通过数据流分析找到合适的安插位置，以保证不论走哪条路径，旧use处都有正确、可用的表达式
 
+**全局值编号(Global Value Numbering, GVN)**：目标是给每个表达式分配一个值号(Value Number)，并在全局范围内复用相同值号的计算，以消除完全冗余。GVN支持交换律，`a+b`和`b+a`会给相同的值号。一般而言GVN需要SSA以确定操作数的值是否发生改变。
 
+[TODO]待研究：似乎LLVM中的实现和理论定义有偏差。如果B、C中都已经算过表达式了，D中相同表达式理论上算是完全冗余，但是实际上GVN可能不会处理，因为没有一个能支配D的节点有定义相同表达式。
 
-**全局值编号(Global Value Numbering, GVN)**：目标是给每个表达式分配一个值号(Value Number)，并在全局范围内复用相同值号的计算，以消除完全冗余。
+LLVM中支配分析在GVN中承担了2个任务：
 
-
-
-https://github.com/llvm/llvm-project/blob/694a4887089fb006dc597219485d7354540917c6/llvm/lib/Transforms/Scalar/GVN.cpp#L2886
-
+- 提供遍历顺序：同CSE
+- 继承和合并支配节点的表达式：如果A支配B且两个节点中有相同的表达式，则B的表达式必定完全冗余
 
 ## LLVM中的支配分析
 
-LLVM中的支配分析的核心产物是支配树。后续所有对严格支配、支配边界等的计算，都是在支配树上产生的。当需要这些“附加信息”时会调用相应算法遍历、查询支配树，而不会在一开始就分析好所有信息。
+LLVM中的支配分析的核心产物是支配树/后支配树，其他支配分析，例如支配、严格支配等的计算，都是在支配树上产生的。支配边界虽然有独立于支配树的Pass（`domfrontier`, `domtree`, `postdomtree`)，但它实现中也用了`domtree`的结果。这样实现的目的可能是为了避免支配、直接支配节点过多导致的内存开销。
 
-错的。LLVM有domtree、domfrontier、postdomtree
-
-TODO
-
+仍以上一小节`基本块和控制流图`中的LLVM IR`6.ll`为例，LLVM对其`domtree`， `domfrontier`分析结果形式分别为：
 
 ```text
 PS C:\Users\xjshu\CLionProjects\playground> opt -S --passes=print<domtree> 6.ll -o 6dom.ll
 DominatorTree for function: func
 =============================--------------------------------
-Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries.
-  [1] %2 {4294967295,4294967295} [0]
+Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries.  
+    // 虽然叫Inorder但这只是LLVM历史遗留术语，实际上的输出逻辑是PreOrder
+    // DFSNumbers invalid说明在这次打印中并未计算或启用节点的DFS进入/离开编号（它们全为默认值 4294967295，即 -1u） 
+    // 0 slow queries表示在分析过程中没有触发任何需要额外工作（slow queries）的情况
+  [1] %2 {4294967295,4294967295} [0]    // [1]指当前层级；[0]指父节点所在层级（0表示无）
     [2] %7 {4294967295,4294967295} [1]
       [3] %10 {4294967295,4294967295} [2]
         [4] %14 {4294967295,4294967295} [3]
@@ -148,6 +147,7 @@ DominatorTree for function: main
 Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries.
 ```
 
+在LLVM实际代码中，需要显示调用`recalculateDFSNumber`才能获得DFS进入/离开编号。这个编号用于在O(1)时间内完成支配判断：如果某节点编号在当前节点DFS in-out编号范围内，则必定受当前节点支配。
 
 ```text
 PS C:\Users\xjshu\CLionProjects\playground> opt -S --passes=print<domfrontier> 6.ll -o 6dom.ll
@@ -163,52 +163,6 @@ DominanceFrontier for function: func
 DominanceFrontier for function: main
   DomFrontier for BB %0 is:
 ```
-
-逐行解释打印结果
-1. 输出头部
-DominatorTree for function: func 表示下面一大段内容是对名为 func 的函数执行支配树分析后打印的结果。
-
-=============================-------------------------------- 纯视觉分隔线，用来区分不同函数的输出区块。
-
-2. 中序遍历和编号状态
-Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries. “Inorder Dominator Tree” 表示采用中序（inorder）方式遍历并打印树结构 “DFSNumbers invalid” 说明在这次打印中并未计算或启用节点的 DFS 进入/离开编号（它们全为默认值 4294967295，即 -1u） “0 slow queries” 表示在分析过程中没有触发任何需要额外工作（slow queries）的情况。
-
-3. 各节点详细说明
-下面的行按树的层级关系缩进，整体格式为：
-
-[节点序号] 节点名称 {DFS-In,DFS-Out} [父节点序号]
-
-[1] %2 {4294967295,4294967295} [0] 节点序号 1，对应名称 %2。 大括号里两项都是 4294967295，表示 DFS 编号未启用。 末尾 [0] 表示它没有父节点（序号 0 表示根）。
-
-[2] %7 {4294967295,4294967295} [1] 序号 2，名称 %7。 它的立即支配者（父节点）是序号 1（即 %2），对应末尾的 [1]。
-
-[3] %10 {4294967295,4294967295} [2] 序号 3，名称 %10。 父节点是序号 2（%7）。
-
-[4] %14 {4294967295,4294967295} [3] 序号 4，名称 %14。 父节点是序号 3（%10）。
-
-[4] %22 {4294967295,4294967295} [3] 同样是序号 4，名称 %22，与 %14 并列于同一深度； 它也由 %10（序号 3）直接支配。
-
-[5] %23 {4294967295,4294967295} [4] 序号 5，名称 %23； 由序号 4 的 %22 直接支配。
-
-[4] %18 {4294967295,4294967295} [3] 序号 4（回到同一深度编号），名称 %18； 由 %10（序号 3）直接支配，与 %14、%22 同级。
-
-[3] %26 {4294967295,4294967295} [2] 序号 3（又回到更浅层级的编号），名称 %26； 它是 %7（序号 2）的另一个子节点。
-
-4. 根节点列表
-Roots: %2 列出支配树森林（若存在多个连通分量）中的根节点。这里只有一个根 %2。
-
-5. 下一个函数的支配树概览
-DominatorTree for function: main 开始打印 main 函数的结果。
-
-=============================-------------------------------- 分隔线。
-
-Inorder Dominator Tree: DFSNumbers invalid: 0 slow queries. 与前面相同，表示对 main 做了中序遍历打印，但没有展开任何子节点（可能因为 main 内部结构过于简单或不包含对应价值节点）。
-
-
-
-
-
-Entry 块（函数的第一个块）若未显式命名，会被省略标签，因为没有任何指令需要跳回它。
 
 ## 支配分析算法
 
